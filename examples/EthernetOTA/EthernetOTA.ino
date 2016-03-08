@@ -26,9 +26,6 @@ IPAddress ip(192, 168, 100, 251);
 void setup() {
   Serial.begin(115200);
 
-  pinMode(13, OUTPUT);
-  pinMode(13, HIGH);
-  
   pinMode(SS, OUTPUT);
   pinMode(4, OUTPUT);
   pinMode(4, HIGH);
@@ -36,7 +33,6 @@ void setup() {
 
   Ethernet.begin(mac, ip);
   ota.begin(&udp, &client);
-  
 
 }
 
@@ -47,13 +43,12 @@ void loop() {
   ota.loop();
   
   if (millis() > deadline) {
-    Serial.println("loop");
+    Serial.println("loop1");
     if (led == HIGH) {
       led = LOW;
     } else {
       led = HIGH;
     }
-    digitalWrite(13, led);
     deadline = millis() + 500;
   }
 }
