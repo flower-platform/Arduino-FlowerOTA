@@ -14,8 +14,10 @@
  * license-end
  */
 
-#include <FlowerOTA.h>
+#include <Arduino.h>
+#include <Ethernet.h>
 #include <EthernetUDP.h>
+#include <FlowerOTA.h>
 
 FlowerOTA ota;
 EthernetUDP udp;
@@ -24,33 +26,32 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(192, 168, 100, 251);
 
 void setup() {
-  Serial.begin(115200);
+	Serial.begin(115200);
 
-  pinMode(SS, OUTPUT);
-  pinMode(4, OUTPUT);
-  pinMode(4, HIGH);
-  
+	pinMode(SS, OUTPUT);
+  pinMode(SS, HIGH);
+	pinMode(4, OUTPUT);
+	pinMode(4, HIGH);
 
-  Ethernet.begin(mac, ip);
-  ota.begin(&udp, &client);
+	Ethernet.begin(mac, ip);
+	ota.begin(&udp, &client, "===server-signature===");
 
 }
 
-long deadline;
+unsigned long deadline;
 uint8_t led;
 
 void loop() {
-  ota.loop();
-  
-  if (millis() > deadline) {
-    Serial.println("loop1");
-    if (led == HIGH) {
-      led = LOW;
-    } else {
-      led = HIGH;
-    }
-    deadline = millis() + 500;
-  }
-}
+	ota.loop();
 
+	if (millis() > deadline) {
+		Serial.println("loop");
+		if (led == HIGH) {
+			led = LOW;
+		} else {
+			led = HIGH;
+		}
+		deadline = millis() + 1500;
+	}
+}
 
