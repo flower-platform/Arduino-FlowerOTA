@@ -17,6 +17,8 @@
 #ifndef __FLOWER_OTA_H__
 #define __FLOWER_OTA_H__
 
+//#define DEBUG_FLOWER_OTA
+
 #include <Client.h>
 #include <IPAddress.h>
 #include <Udp.h>
@@ -72,10 +74,12 @@ public:
 		if (!packetSize) {
 			return;
 		}
-
-//		Serial.print("Received packet of size ");
-//		Serial.println(packetSize);
-
+		
+		#ifdef DEBUG_FLOWER_OTA
+		Serial.print("Received packet of size ");
+		Serial.println(packetSize);
+		#endif
+		
 		if (packetSize > 256) {
 			packetSize = 256;
 		}
@@ -83,14 +87,20 @@ public:
 		udp->read(packetData, packetSize);
 		packetData[packetSize] = '\0';
 
-//		Serial.println((char*) packetData);
+		#ifdef DEBUG_FLOWER_OTA
+		Serial.println((char*) packetData);
+		#endif
 
-		char* host = packetData + 9; // skip "OTAUPLOAD"
-
+		char* url = packetData + 9; // skip "OTAUPLOAD"
+		getUpdate(url);
+	}
+	
+	void getUpdate(const char* url) {
 		const char* HTTP_PREFIX = "http://";
 		const char* HTTPS_PREFIX = "https://";
 		bool isHttps = false;
-
+	
+		const char* host = url;
 		// parse prefix
 		if (strncmp(host, HTTP_PREFIX, strlen(HTTP_PREFIX)) == 0) {
 			host += strlen(HTTP_PREFIX);
@@ -104,8 +114,9 @@ public:
 		page++;
 
 		getUpdate(host, page, isHttps);
+		
 	}
-
+	
 protected:
 
 	UDP *udp;
@@ -115,18 +126,25 @@ protected:
 	const char* trustedServerSignature;
 
 	void getUpdate(const char* address, const char* page, bool useSSL) {
-//		Serial.println("Update command received");
-		if (!client->connect(address, 80)) {
+		#ifdef DEBUG_FLOWER_OTA
+		Serial.println("Update command received");
+		Serial.println(address);
+		Serial.println(page);
+		#endif
+		if (!client->connect(address, useSSL ? 443 : 80)) {
 			return;
 		}
 
 		client->print("GET /"); client->print(page); client->println(" HTTP/1.1");
 		client->print("Host: "); client->println(address);
+		client->println("Connection: close");
 		client->println();
 		client->flush();
 
-//		Serial.println("Request sent");
-
+		#ifdef DEBUG_FLOWER_OTA
+		Serial.println("Request sent");
+		#endif
+		
 		bool processHeaders = true;
 
 
@@ -149,14 +167,20 @@ protected:
 							processHeaders = false;
 						} else { // process header line
 							buf[bufPointer] = '\0';
-//							Serial.print("line: "); Serial.println(buf);
+							#ifdef DEBUG_FLOWER_OTA
+							Serial.print("line: "); Serial.println(buf);
+							#endif
 							if (strncmp(buf, HEADER_SERVER_SIGNATURE, strlen(HEADER_SERVER_SIGNATURE)) == 0) {
 								char* serverSignature = strchr(buf, ':') + 2;
-//								Serial.print("Trusted server signature: "); Serial.println(trustedServerSignature);
-//								Serial.print("Server signature: "); Serial.println(serverSignature);
+								#ifdef DEBUG_FLOWER_OTA
+								Serial.print("Trusted server signature: "); Serial.println(trustedServerSignature);
+								Serial.print("Server signature: "); Serial.println(serverSignature);
+								#endif
 								if (strcmp(serverSignature, trustedServerSignature) == 0) {
 									serverSignatureVerified = true;
-//									Serial.println("Downloading update");
+									#ifdef DEBUG_FLOWER_OTA
+									Serial.println("Downloading update");
+									#endif
 								}
 							}
 							bufPointer = 0;
@@ -171,7 +195,9 @@ protected:
 						flashWrite(flashAddress, buf, BUF_SIZE);
 						flashAddress += BUF_SIZE;
 						bufPointer = 0;
-//						Serial.print(".");
+						#ifdef DEBUG_FLOWER_OTA
+						Serial.print(".");
+						#endif
 					}
 				} else {
 					break;
@@ -186,7 +212,9 @@ protected:
 
 		if (serverSignatureVerified) {
 			delay(100);
-			//Serial.println("\nResetting...\n\n");
+			#ifdef DEBUG_FLOWER_OTA
+			Serial.println("\nResetting...\n\n");
+			#endif
 			NVIC_SystemReset(); // equivalent to this:  *((uint32_t*) 0xE000ED0C) = (uint32_t) 0x05FA0004;
 			while (1);
 		}
