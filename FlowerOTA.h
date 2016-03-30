@@ -99,21 +99,32 @@ public:
 		const char* HTTP_PREFIX = "http://";
 		const char* HTTPS_PREFIX = "https://";
 		bool isHttps = false;
-	
+		int port;
+		
 		const char* host = url;
 		// parse prefix
 		if (strncmp(host, HTTP_PREFIX, strlen(HTTP_PREFIX)) == 0) {
 			host += strlen(HTTP_PREFIX);
+			port = 80;
 		} else if (strncmp(host, HTTPS_PREFIX, strlen(HTTPS_PREFIX)) == 0) {
 			host += strlen(HTTPS_PREFIX);
+			port = 443;
 			isHttps = true;
 		}
 
 		char* page = strchr(host, '/');
 		*page = '\0'; // break string
+
+		char *p = strchr(host, ':');
+		if (p != NULL) {
+			*p = '\0';
+			p++;
+			port = atoi(p);
+		}
+		
 		page++;
 
-		getUpdate(host, page, isHttps);
+		getUpdate(host, port, page, isHttps);
 		
 	}
 	
@@ -125,13 +136,13 @@ protected:
 
 	const char* trustedServerSignature;
 
-	void getUpdate(const char* address, const char* page, bool useSSL) {
+	void getUpdate(const char* address, int port, const char* page, bool useSSL) {
 		#ifdef DEBUG_FLOWER_OTA
 		Serial.println("Update command received");
 		Serial.println(address);
 		Serial.println(page);
 		#endif
-		if (!client->connect(address, useSSL ? 443 : 80)) {
+		if (!client->connect(address, port)) {
 			return;
 		}
 
